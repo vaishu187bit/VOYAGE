@@ -18,6 +18,9 @@ const pool = mysql.createPool({
   queueLimit:         0,
   timezone:           'Z',
   charset:            'utf8mb4',
+  ssl:                process.env.DB_HOST && process.env.DB_HOST !== 'localhost' 
+                        ? { minVersion: 'TLSv1.2', rejectUnauthorized: true } 
+                        : undefined,
 });
 
 // Quick connectivity test on startup
