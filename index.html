@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voyage – Explore Places Around You</title>
+  <meta name="description" content="Discover the most popular places to explore within 10km of your current location. Get a personalized travel itinerary instantly." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;1,500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">🧭</span>
+        <span class="logo-text">Voyage</span>
+      </div>
+      <nav class="nav-links">
+        <a href="#itinerary-section">Itinerary</a>
+        <a href="#map-section">Map</a>
+        <a href="#categories-section">Categories</a>
+      </nav>
+      <div id="auth-bar" class="auth-bar"></div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <div class="hero-bg-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+      <div class="shape shape-3"></div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-badge">🌍 Location-Based Discovery</div>
+      <h1 class="hero-title">
+        Explore Any City,<br /><em>10km Around You</em>
+      </h1>
+      <p class="hero-subtitle">
+        Type any city, area or landmark to instantly discover hidden gems, iconic spots, cafés, parks and more nearby.
+      </p>
+
+      <!-- Search Box -->
+      <div class="search-wrapper">
+        <div class="search-bar">
+          <span class="search-bar-icon">🔍</span>
+          <input
+            id="city-input"
+            type="text"
+            class="search-bar-input"
+            placeholder="Enter a city, area or landmark…"
+            autocomplete="off"
+            spellcheck="false"
+            oninput="onSearchInput(this.value)"
+            onkeydown="if(event.key==='Enter'){dismissSuggestions();searchLocation();}"
+          />
+          <button id="clear-btn" class="search-clear hidden" onclick="clearSearch()" title="Clear">✕</button>
+        </div>
+        <button class="search-go-btn" id="go-btn" onclick="searchLocation()">
+          Explore →
+        </button>
+
+        <!-- Divider -->
+        <div class="search-divider"><span>or</span></div>
+
+        <!-- Auto Detect Location Button -->
+        <button class="locate-btn" id="locate-btn" onclick="detectLocation()">
+          <span class="locate-pulse"></span>
+          <span class="locate-icon">📍</span>
+          <span class="locate-label">Detect My Location</span>
+        </button>
+
+        <!-- Autocomplete suggestions -->
+        <ul id="suggestions" class="suggestions hidden"></ul>
+      </div>
+
+      <!-- Quick city chips -->
+      <div class="quick-cities">
+        <span class="quick-label">✨ Quick picks:</span>
+        <button class="quick-chip" onclick="quickSearch('Greater Noida')">Greater Noida</button>
+        <button class="quick-chip" onclick="quickSearch('New Delhi')">New Delhi</button>
+        <button class="quick-chip" onclick="quickSearch('Mumbai')">Mumbai</button>
+        <button class="quick-chip" onclick="quickSearch('Bengaluru')">Bengaluru</button>
+        <button class="quick-chip" onclick="quickSearch('Hyderabad')">Hyderabad</button>
+        <button class="quick-chip" onclick="quickSearch('Jaipur')">Jaipur</button>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="pulse-ring ring-1"></div>
+      <div class="pulse-ring ring-2"></div>
+      <div class="pulse-ring ring-3"></div>
+      <div class="location-dot"></div>
+    </div>
+  </section>
+
+  <!-- LOADING OVERLAY -->
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="loader-card">
+      <div class="loader-spinner"></div>
+      <p id="loader-text" class="loader-text">Detecting your location…</p>
+      <div class="loader-progress">
+        <div id="loader-bar" class="loader-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ERROR BANNER -->
+  <div id="error-banner" class="error-banner hidden">
+    <span class="error-icon">⚠️</span>
+    <p id="error-msg"></p>
+    <button onclick="dismissError()">✕</button>
+  </div>
+
+  <!-- LOCATION STRIP -->
+  <div id="location-strip" class="location-strip hidden">
+    <div class="strip-inner">
+      <div class="strip-item">
+        <span class="strip-icon">📍</span>
+        <div>
+          <span class="strip-label">Exploring Around</span>
+          <span id="location-name" class="strip-value">—</span>
+        </div>
+      </div>
+      <div class="strip-divider"></div>
+      <div class="strip-item">
+        <span class="strip-icon">🗺️</span>
+        <div>
+          <span class="strip-label">Search Radius</span>
+          <span class="strip-value">10 km</span>
+        </div>
+      </div>
+      <div class="strip-divider"></div>
+      <div class="strip-item">
+        <span class="strip-icon">🏛️</span>
+        <div>
+          <span class="strip-label">Places Found</span>
+          <span id="place-count" class="strip-value">0</span>
+        </div>
+      </div>
+      <button class="refresh-btn" onclick="scrollToSearch()">🔍 New Search</button>
+    </div>
+  </div>
+
+  <!-- CATEGORIES -->
+  <section id="categories-section" class="categories-section hidden">
+    <div class="container">
+      <h2 class="section-title">Filter by Category</h2>
+      <div class="category-chips" id="category-chips"></div>
+    </div>
+  </section>
+
+  <!-- ITINERARY -->
+  <section id="itinerary-section" class="itinerary-section hidden">
+    <div class="container">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Your Local Itinerary</h2>
+          <p class="section-subtitle">Sourced from OpenStreetMap · sorted by distance</p>
+        </div>
+        <button class="print-btn" onclick="window.print()">🖨️ Print Itinerary</button>
+      </div>
+      <div id="itinerary-grid" class="itinerary-grid"></div>
+    </div>
+  </section>
+
+  <!-- MAP -->
+  <section id="map-section" class="map-section hidden">
+    <div class="container">
+      <h2 class="section-title">Interactive Map</h2>
+      <div id="map" class="map-container"></div>
+    </div>
+  </section>
+
+  <!-- LOCATION PERMISSION MODAL -->
+  <div id="location-permission-modal" class="location-modal hidden">
+    <div class="location-modal-backdrop" onclick="closePermissionModal()"></div>
+    <div class="location-modal-card">
+      <div class="modal-location-icon">📍</div>
+      <h3 class="modal-title">Enable Location Access</h3>
+      <p class="modal-desc">Voyage needs permission to access your location to discover places around you.</p>
+      <div class="modal-steps">
+        <div class="modal-step">
+          <span class="step-num">1</span>
+          <span>Click the 🔒 lock icon in your browser's address bar</span>
+        </div>
+        <div class="modal-step">
+          <span class="step-num">2</span>
+          <span>Set <strong>Location</strong> to <strong>Allow</strong></span>
+        </div>
+        <div class="modal-step">
+          <span class="step-num">3</span>
+          <span>Click <strong>Try Again</strong> below</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-dismiss-btn" onclick="closePermissionModal()">Dismiss</button>
+        <button class="modal-retry-btn" onclick="closePermissionModal(); detectLocation();">🔄 Try Again</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUTH MODAL -->
+  <div id="auth-modal" class="auth-modal hidden">
+    <div class="auth-modal-backdrop" onclick="document.getElementById('auth-modal').classList.add('hidden')"></div>
+    <div class="auth-modal-card">
+      <button class="auth-modal-close" onclick="document.getElementById('auth-modal').classList.add('hidden')">✕</button>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Sign In</button>
+        <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Register</button>
+      </div>
+
+      <!-- Login Form -->
+      <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
+        <h3 class="auth-form-title">Welcome back 👋</h3>
+        <label>Email
+          <input id="login-email" type="email" placeholder="you@email.com" required />
+        </label>
+        <label>Password
+          <input id="login-password" type="password" placeholder="••••••••" required />
+        </label>
+        <p id="login-error" class="auth-error hidden"></p>
+        <button type="submit" class="auth-submit-btn">Sign In →</button>
+      </form>
+
+      <!-- Register Form -->
+      <form id="register-form" class="auth-form hidden" onsubmit="handleRegister(event)">
+        <h3 class="auth-form-title">Create account 🚀</h3>
+        <label>Username
+          <input id="reg-username" type="text" placeholder="YourName" required />
+        </label>
+        <label>Email
+          <input id="reg-email" type="email" placeholder="you@email.com" required />
+        </label>
+        <label>Password
+          <input id="reg-password" type="password" placeholder="Min 8 characters" minlength="8" required />
+        </label>
+        <p id="register-error" class="auth-error hidden"></p>
+        <button type="submit" class="auth-submit-btn">Create Account →</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- PLACE DETAIL MODAL (Netflix style) -->
+  <div id="place-detail-modal" class="detail-modal hidden">
+    <div class="detail-modal-backdrop" onclick="closePlaceModal()"></div>
+    <div class="detail-modal-card">
+      <button class="detail-modal-close" onclick="closePlaceModal()">✕</button>
+      
+      <div id="detail-modal-header" class="detail-modal-header">
+        <div id="detail-modal-gradient" class="detail-modal-gradient"></div>
+        <div class="detail-modal-title-wrap">
+          <h2 id="detail-modal-title" class="detail-modal-title"></h2>
+          <span id="detail-modal-category" class="detail-modal-category"></span>
+        </div>
+      </div>
+      
+      <div class="detail-modal-body">
+        <div class="detail-modal-meta">
+          <span id="detail-modal-distance" class="detail-modal-distance"></span>
+          <span id="detail-modal-fee" class="detail-modal-fee"></span>
+          <span id="detail-modal-time" class="detail-modal-time"></span>
+        </div>
+        
+        <p id="detail-modal-summary" class="detail-modal-summary">Loading details...</p>
+        
+        <div id="detail-modal-address" class="detail-modal-address"></div>
+        <div id="detail-modal-tags" class="detail-modal-tags"></div>
+        
+        <div class="detail-modal-actions mt-4">
+          <a id="detail-modal-maps" href="#" target="_blank" class="detail-action-btn maps">🗺️ Open Map</a>
+          <a id="detail-modal-wiki" href="#" target="_blank" class="detail-action-btn wiki">📖 Wikipedia read more</a>
+          <button id="detail-modal-save" class="detail-action-btn save-btn">🔖 Save Place</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-logo">🧭 Voyage</div>
+      <p>Powered by <a href="https://www.openstreetmap.org" target="_blank">OpenStreetMap</a> &amp; <a href="https://overpass-api.de" target="_blank">Overpass API</a></p>
+      <p class="footer-legal">🔒 Your location is only used locally — never stored or shared.</p>
+    </div>
+  </footer>
+
+  <script src="api.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
