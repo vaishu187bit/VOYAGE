@@ -14,7 +14,7 @@ const placesRouter            = require('./routes/places');
 const itinerariesRouter       = require('./routes/itineraries');
 
 const app  = express();
-const PORT = parseInt(process.env.SERVER_PORT || '3001', 10);
+const PORT = parseInt(process.env.PORT || process.env.SERVER_PORT || '3001', 10);
 
 // ── Middleware ────────────────────────────────────────────────
 app.use(cors({ origin: '*' }));          // tighten in production
