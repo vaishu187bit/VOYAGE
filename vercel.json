@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://REPLACE_THIS_WITH_YOUR_RENDER_URL.onrender.com/api/$1"
+      "destination": "https://voyage-wvkg.onrender.com/api/$1"
     }
   ]
 }
