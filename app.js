@@ -976,15 +976,63 @@ async function setupNetflixBillboard(topPlace) {
   } catch (e) { /* fallback gradient already in place */ }
 }
 
+const CATEGORY_SAMPLE_PHOTOS = {
+  tourism: [
+    'https://images.unsplash.com/photo-1596178065887-1198b6148b2b?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1582510003544-4d00b7f74220?auto=format&fit=crop&w=600&q=80'
+  ],
+  historic: [
+    'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=600&q=80'
+  ],
+  accommodation: [
+    'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=600&q=80'
+  ],
+  natural: [
+    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'
+  ],
+  food: [
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=600&q=80'
+  ],
+  religious: [
+    'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=600&q=80'
+  ],
+  shopping: [
+    'https://images.unsplash.com/photo-1481437156560-3205f6a55735?auto=format&fit=crop&w=600&q=80'
+  ],
+  default: [
+    'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=600&q=80'
+  ]
+};
+
+function getCategoryPhoto(catId, id) {
+  const list = CATEGORY_SAMPLE_PHOTOS[catId] || CATEGORY_SAMPLE_PHOTOS.default;
+  const idx = Math.abs(Number(id) || 0) % list.length;
+  return list[idx];
+}
+
 const imageCache = new Map();
 async function lazyLoadPlaceImage(place) {
+  // Set immediate high-quality categorized fallback so the card NEVER stays blank
+  const fallbackImg = getCategoryPhoto(place.categoryId, place.id);
+  applyThumbnail(place.id, fallbackImg);
+
   if (imageCache.has(place.name)) {
-    const imgUrl = imageCache.get(place.name);
-    if (imgUrl) applyThumbnail(place.id, imgUrl);
+    const cached = imageCache.get(place.name);
+    if (cached) applyThumbnail(place.id, cached);
     return;
   }
+
   try {
-    // 1. Try direct exact summary
+    // 1. Try exact Wikipedia article summary
     const safeTitle = encodeURIComponent(place.name.replace(/ /g, '_'));
     const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${safeTitle}`);
     if (res.ok) {
@@ -997,8 +1045,8 @@ async function lazyLoadPlaceImage(place) {
       }
     }
 
-    // 2. Fallback: Search Wikipedia API if exact page title differs slightly
-    const searchRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&origin=*&format=json&generator=search&gsrsearch=${encodeURIComponent(place.name)}&gsrlimit=1&prop=pageimages&pithumbsize=400`);
+    // 2. OpenSearch Wikipedia
+    const searchRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&origin=*&format=json&generator=search&gsrsearch=${encodeURIComponent(place.name)}&gsrlimit=1&prop=pageimages&pithumbsize=600`);
     if (searchRes.ok) {
       const searchData = await searchRes.json();
       const pages = searchData.query?.pages;
@@ -1013,14 +1061,14 @@ async function lazyLoadPlaceImage(place) {
       }
     }
   } catch (e) {
-    imageCache.set(place.name, null);
+    // Keeps the high-quality fallback image
   }
 }
 
 function applyThumbnail(placeId, imgUrl) {
   const imgEl = document.getElementById(`thumb-img-${placeId}`);
   const wrapEl = document.getElementById(`thumb-wrap-${placeId}`);
-  if (imgEl) {
+  if (imgEl && imgUrl) {
     imgEl.onload = () => {
       if (wrapEl) wrapEl.classList.remove('shimmer-skeleton');
       imgEl.classList.remove('hidden');
