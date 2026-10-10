@@ -762,16 +762,10 @@ async function openPlaceModal(place) {
   document.getElementById('detail-modal-summary').textContent = 'Loading Wikipedia summary...';
   document.getElementById('detail-modal-header').style.backgroundImage = 'radial-gradient(circle at bottom right, rgba(108,99,255,0.4) 0%, rgba(8,12,20,1) 80%)';
   
-  // Set up dynamic YouTube Walking Tour/Vlog embed & direct link
-  const rawQuery = `${place.name} tour vlog`;
+  // Set up sleek YouTube Watch Link
+  const rawQuery = `${place.name} travel tour vlog`;
   const videoQuery = encodeURIComponent(rawQuery);
-  const videoIframe = document.getElementById('detail-modal-video');
   const videoLink = document.getElementById('detail-modal-video-link');
-  
-  if (videoIframe) {
-    // YouTube embed via search query
-    videoIframe.src = `https://www.youtube-nocookie.com/embed?listType=search&list=${videoQuery}&autoplay=0`;
-  }
   if (videoLink) {
     videoLink.href = `https://www.youtube.com/results?search_query=${videoQuery}`;
   }
@@ -822,8 +816,6 @@ async function openPlaceModal(place) {
 }
 
 function closePlaceModal() {
-  const videoIframe = document.getElementById('detail-modal-video');
-  if (videoIframe) videoIframe.src = ''; // stop audio on modal close
   document.getElementById('place-detail-modal').classList.add('hidden');
 }
 
