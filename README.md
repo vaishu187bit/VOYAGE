@@ -1,4 +1,4 @@
-# VOYAGE — NearbyQuest 🧭
+﻿# VOYAGE — NearbyQuest 🧭
 
 **Problem Statement: 4 — Open Innovation (Student Pain Points)**
 
@@ -16,7 +16,7 @@ VOYAGE is a location-based travel discovery and itinerary planner built for stud
 
 ### What works right now
 - City search with autocomplete suggestions (Nominatim)
-- **Auto geolocation** — detects your current location, asks for permission politely with a step-by-step guide modal if denied
+- **Auto geolocation** — detects current location; step-by-step permission modal if browser blocks it
 - Fetches up to 100 nearby places within 10 km via Overpass API (OpenStreetMap)
 - Category filters: Attractions, Historic, Nature, Parks, Food, Shopping, Religious, Hotels
 - Place cards with: icon, category, distance, address, entry fee, best visiting time
@@ -28,19 +28,19 @@ VOYAGE is a location-based travel discovery and itinerary planner built for stud
 - Fully responsive (mobile + desktop)
 - Error handling: permission denied, location unavailable, API timeout, network error
 
-### What is left / being improved
+### What is left for the next 16 hours
 - Add a Save Favourites feature (localStorage)
-- Share itinerary via link
-- Add walking/transit time estimates
-- Improve place photo thumbnails
+- Share itinerary via link or WhatsApp
+- Add walking / transit time estimates
+- Improve place photo thumbnails via Wikimedia API
 
 ### Plan to finish
 | Time | Task |
 |------|------|
-| Now  | Push to GitHub, enable GitHub Pages |
-| +1hr | Add favourites (localStorage) |
-| +2hr | Add share-by-link feature |
-| +3hr | Final polish, mobile testing, live URL |
+| +1 hr | Add favourites (localStorage) |
+| +2 hr | Add share-by-link feature |
+| +3 hr | Wikimedia photo thumbnails on cards |
+| +4 hr | Final mobile testing, live URL in README, submission |
 
 ---
 
@@ -49,45 +49,46 @@ VOYAGE is a location-based travel discovery and itinerary planner built for stud
 `
 User Browser
     │
-    ├── index.html     — Structure, layout, modals
-    ├── style.css      — Dark glassmorphism UI, all animations
-    └── app.js         — All logic (no framework, no build step)
+    ├── index.html  — Structure, layout, modals
+    ├── style.css   — Dark glassmorphism UI, all animations
+    └── app.js      — All logic (no framework, no build step)
             │
             ├── Nominatim API  (geocoding & autocomplete)
             │   https://nominatim.openstreetmap.org
             │   → Free, no key, 1 req/sec limit respected
             │
             ├── Overpass API   (place data from OpenStreetMap)
-            │   https://overpass-api.de (with 2 mirror fallbacks)
+            │   https://overpass-api.de  (+ 2 mirror fallbacks)
             │   → Free, no key, queries nodes/ways/relations
             │
             ├── Browser Geolocation API
-            │   → Native, no cost, user-permission based
+            │   → Native browser API, user-permission based
             │
-            └── Leaflet.js     (interactive map)
-                CartoDB Dark tiles (free, no key)
+            └── Leaflet.js  +  CartoDB Dark Tiles
+                → Interactive map, free, no key required
 `
 
-**Why no framework?** The project is 3 files, zero build steps, and deploys by just opening index.html. Zero setup friction — runs on any laptop instantly, which matters in a hackathon.
+**Why no framework?** The project is 3 files with zero build steps. It runs instantly on any laptop — no 
+pm install, no config. This is critical for a hackathon demo.
 
-**Why OpenStreetMap / Overpass?** Fully free, no API keys, global data, and richer POI data than many paid alternatives for tourism/historic/nature categories.
+**Why OpenStreetMap / Overpass?** Fully free, no API keys, global coverage, and richer POI data (tourism, historic, nature) than many paid alternatives.
 
-**Why Ola/Uber deep links?** Instead of just showing fare estimates (like Google Maps), we remove the friction of manually entering the destination — one tap and the ride app opens with everything pre-filled.
+**Why Ola/Uber deep links?** Instead of just showing estimates like Google Maps, we eliminate 3 manual steps — one tap and the ride app opens with everything pre-filled.
 
 ---
 
 ## What We Added (Beyond the Brief)
 
 | Feature | Why it is useful |
-|---------|-----------------|
-| Auto Geolocation with permission modal | Students don't need to type their location; step-by-step modal guides them if browser blocks location |
-| Live Ola + Uber booking tiles | Removes 3 manual steps — no copy-pasting addresses |
-| 3-mirror Overpass fallback | If one server is slow, silently retries — no error seen by user |
-| Day-wise itinerary grouping | Makes a raw list feel like an actual travel plan |
-| Entry fee + best time badges | Helps students plan budget and schedule before visiting |
-| Animated progress loader | Communicates each step (geocoding → fetching → processing) clearly |
-| Print itinerary | Students can print or PDF their plan offline |
-| Keyboard & Escape support | Modal closes on Escape; search triggers on Enter |
+|---------|--------------------|
+| Auto Geolocation + permission modal | Students don't need to type their location; guided modal if browser blocks |
+| One-tap Ola + Uber booking tiles | Removes friction — no copy-pasting addresses into ride apps |
+| 3-mirror Overpass API fallback | If one server is slow, silently retries — no user-visible error |
+| Day-wise itinerary grouping | Turns a raw list into an actual multi-day travel plan |
+| Entry fee + best-time badges | Helps students budget and schedule before visiting |
+| Animated progress loader with stages | Shows exactly what's happening: geocoding → fetching → processing |
+| Print itinerary button | Students can PDF or print their plan for offline use |
+| Keyboard & Escape key support | Modal closes on Escape; search fires on Enter — fully keyboard navigable |
 
 ---
 
@@ -95,17 +96,17 @@ User Browser
 
 ### Local (no install needed)
 `ash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
-cd YOUR_REPO
-# Just open index.html in any browser
-start index.html       # Windows
-open index.html        # Mac
+git clone https://github.com/vaishu187bit/VOYAGE.git
+cd VOYAGE
+# Just open index.html in any browser — no server needed
+start index.html    # Windows
+open index.html     # Mac / Linux
 `
 
 ### Live URL
 > 🌐 **https://vaishu187bit.github.io/VOYAGE**
 
-No login required. No API keys needed.
+No login required. No API keys needed. Works on mobile and desktop.
 
 ---
 
@@ -117,41 +118,111 @@ No login required. No API keys needed.
 | [Overpass API](https://overpass-api.de) | Fetch nearby places from OSM | Free, no key |
 | [Leaflet.js](https://leafletjs.com) | Interactive map rendering | Free, open-source |
 | [CartoDB Dark Tiles](https://carto.com) | Dark map tile theme | Free |
-| [Browser Geolocation API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API) | Detect user location | Native, free |
-| [Ola Deep Link](https://book.olacabs.com) | Pre-fill pickup+drop for Ola | Free link |
-| [Uber Deep Link](https://m.uber.com/ul) | Pre-fill pickup+drop for Uber | Free link |
+| [Browser Geolocation API](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API) | Detect user GPS location | Native, free |
+| [Ola Deep Link](https://book.olacabs.com) | Pre-fill pickup + drop for Ola | Free link |
+| [Uber Deep Link](https://m.uber.com/ul) | Pre-fill pickup + drop for Uber | Free link |
 | Outfit + Playfair Display (Google Fonts) | Typography | Free |
 
-**AI transparency:** This app does not include any AI-generated content shown to users. All place data comes from OpenStreetMap contributors.
+**AI transparency:** This app does not use or display any AI-generated content to users. All place data comes from OpenStreetMap community contributors.
 
 ---
 
 ## Who It Is For
 
-**Primary users:** College students visiting a new city for internships, fests, trips, or interviews.
+**Primary users:** College students visiting a new city for internships, fests, trips, or job interviews.
 
 **Why they would come back:**
-- Zero setup — works immediately on any device
-- Saves 20–30 minutes of what's nearby? research every trip
-- Fare tiles with direct Ola/Uber booking saves the hassle of copy-pasting addresses
-- The itinerary can be printed and taken offline
+- Zero setup — works immediately on any device, no account needed
+- Saves 20–30 minutes of scattered searching every trip
+- One-tap Ola/Uber booking removes the copy-paste frustration
+- Day-wise itinerary feels like a real travel plan, not a raw list
+- Works offline once loaded (cached map tiles)
 
-**Evidence of need:** See [evidence/survey_results.md](evidence/survey_results.md) — 87.5% of surveyed students have missed a place in a new city, 100% wanted direct ride-booking from discovery results.
+---
+
+## Problem Definition
+
+**Who has the problem:** College students (1st–4th year) who visit unfamiliar cities for internships, fests, interviews, or trips — roughly every Indian college student at some point.
+
+**What it costs them:**
+- 20–30 minutes wasted per trip doing scattered searching across Google Maps, Instagram, and WhatsApp groups
+- Money lost due to no fare awareness before booking — students often overpay
+- Missed experiences — popular spots go unvisited simply because the student didn't know they existed
+
+**Why existing tools fall short:**
+
+| Tool | What it lacks |
+|------|--------------|
+| Google Maps | Shows everything but doesn't curate, rank by relevance, or estimate fares |
+| MakeMyTrip / TripAdvisor | Designed for tourists, not student budgets; no real-time ride cost |
+| Instagram / YouTube | Passive discovery, no actionable itinerary or directions |
+| Ola / Uber | Ride booking only — no discovery of where to go first |
+
+**VOYAGE combines all of this in one free, zero-login tool** — discovery + itinerary + fare estimate + one-tap booking.
+
+---
+
+## How Our Solution Differs
+
+| Feature | Google Maps | TripAdvisor | VOYAGE |
+|---------|-------------|-------------|--------|
+| Discover places near any city | ✅ | ✅ | ✅ |
+| Day-wise itinerary plan | ❌ | ✅ (paid) | ✅ Free |
+| Fare estimate (Auto/Ola/Uber) | ⚠️ Rough | ❌ | ✅ Calculated |
+| One-tap Ola/Uber booking | ❌ | ❌ | ✅ Pre-filled |
+| Works without an account | ✅ | ❌ | ✅ |
+| Entry fees + best visit time | ❌ | ⚠️ | ✅ |
+| Auto-detect GPS location | ✅ | ❌ | ✅ With modal |
+| 100% free, no API key | ❌ | ❌ | ✅ |
+
+---
+
+## Signs Students Would Use It
+
+**From our survey (8 students, evidence folder):**
+- **100%** said they would use a direct Ola/Uber booking button from a discovery tool
+- **87.5%** have missed a good place in a new city because they didn't know it existed
+- **87.5%** said they would use a combined discovery + itinerary + booking tool
+- **62.5%** find fare estimation stressful before booking a ride in an unfamiliar city
+
+**Direct student quotes:**
+> *I always waste 30 mins figuring out what's nearby when I reach a new place.* — 3rd year CS student
+
+> *Knowing the auto fare before I go would save so much stress.* — 2nd year student
+
+> *I missed the famous lake near my internship city because no one told me.* — Final year student
+
+> *One app that combines discovery + booking would be a game changer.* — 2nd year student
+
+> *Google Maps shows everything but doesn't tell me what's worth visiting.* — 1st year student
+
+See full survey in [evidence/survey_results.md](evidence/survey_results.md)
+
+---
+
+## Our Pitch
+
+> **Every year, thousands of Indian students land in an unfamiliar city with no plan.**
+> They open Google Maps — and get overwhelmed. They ask friends — and miss half the spots.
+> They open Ola to book a ride — but have no idea where to go first, or what it'll cost.
+>
+> **VOYAGE solves this in one tap.** Type your city, and in seconds you get a full day-wise
+> itinerary of the best nearby places — with entry fees, best visiting times, and a direct
+> Book Ola / Book Uber button that opens the app with your destination already filled in.
+>
+> No account. No API key. No install. Just open and explore.
 
 ---
 
 ## Student Problem Evidence
 
-See the [evidence/](evidence/) folder for:
-- Survey results (8 students surveyed)
-- Key quotes from respondents
-- Problem validation summary
+See the [evidence/](evidence/) folder for full survey results, quotes, and problem validation.
 
 **Key numbers:**
-- 87.5% struggle to find places in new cities
+- 87.5% struggle to discover places in new cities
 - 100% would use a direct Ola/Uber booking button
 - 87.5% have missed a good spot due to lack of awareness
-- 62.5% find fare estimation stressful
+- 62.5% find fare estimation stressful before booking
 
 ---
 
