@@ -760,45 +760,70 @@ async function openPlaceModal(place) {
 
   // Show modal with loading state
   document.getElementById('detail-modal-summary').textContent = 'Loading Wikipedia summary...';
-  document.getElementById('detail-modal-header').style.backgroundImage = 'none';
+  document.getElementById('detail-modal-header').style.backgroundImage = 'radial-gradient(circle at bottom right, rgba(108,99,255,0.4) 0%, rgba(8,12,20,1) 80%)';
   
-  // Set up dynamic YouTube Walking Tour/Vlog embed
+  // Set up dynamic YouTube Walking Tour/Vlog embed & direct link
+  const rawQuery = `${place.name} tour vlog`;
+  const videoQuery = encodeURIComponent(rawQuery);
   const videoIframe = document.getElementById('detail-modal-video');
+  const videoLink = document.getElementById('detail-modal-video-link');
+  
   if (videoIframe) {
-    const videoQuery = encodeURIComponent(`${place.name} travel tour vlog`);
-    videoIframe.src = `https://www.youtube.com/embed?listType=search&list=${videoQuery}&autoplay=0`;
+    // YouTube embed via search query
+    videoIframe.src = `https://www.youtube-nocookie.com/embed?listType=search&list=${videoQuery}&autoplay=0`;
+  }
+  if (videoLink) {
+    videoLink.href = `https://www.youtube.com/results?search_query=${videoQuery}`;
   }
   
   document.getElementById('place-detail-modal').classList.remove('hidden');
 
-  // Fetch rich info from Wikipedia API
+  // Fetch rich photo & info from Wikipedia API
   try {
     const safeTitle = encodeURIComponent(place.name.replace(/ /g, '_'));
     const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${safeTitle}`;
     const res = await fetch(wikiUrl);
     
-    if (!res.ok) throw new Error('Not found');
-    const data = await res.json();
-    
-    if (data.extract) {
-      document.getElementById('detail-modal-summary').textContent = data.extract;
-    } else {
-      document.getElementById('detail-modal-summary').textContent = 'No detailed summary available for this place.';
+    let photoFound = false;
+    if (res.ok) {
+      const data = await res.json();
+      if (data.extract) {
+        document.getElementById('detail-modal-summary').textContent = data.extract;
+      }
+      const imgUrl = data.originalimage?.source || data.thumbnail?.source;
+      if (imgUrl) {
+        document.getElementById('detail-modal-header').style.backgroundImage = `url('${imgUrl}')`;
+        photoFound = true;
+      }
     }
-    
-    if (data.thumbnail && data.thumbnail.source) {
-      let imgUrl = data.originalimage?.source || data.thumbnail?.source;
-      document.getElementById('detail-modal-header').style.backgroundImage = `url('${imgUrl}')`;
-    } else {
-      document.getElementById('detail-modal-header').style.backgroundImage = 'radial-gradient(circle at bottom right, rgba(108,99,255,0.4) 0%, rgba(8,12,20,1) 80%)';
+
+    // Secondary fallback: search Wikipedia query if exact summary has no picture
+    if (!photoFound) {
+      const searchRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&origin=*&format=json&generator=search&gsrsearch=${encodeURIComponent(place.name)}&gsrlimit=1&prop=pageimages|extracts&exintro=1&explaintext=1&pithumbsize=800`);
+      if (searchRes.ok) {
+        const searchData = await searchRes.json();
+        const pages = searchData.query?.pages;
+        if (pages) {
+          const firstPage = Object.values(pages)[0];
+          if (firstPage?.extract && !document.getElementById('detail-modal-summary').textContent.startsWith('No detailed')) {
+            document.getElementById('detail-modal-summary').textContent = firstPage.extract.slice(0, 300) + '...';
+          }
+          const searchImg = firstPage?.thumbnail?.source;
+          if (searchImg) {
+            document.getElementById('detail-modal-header').style.backgroundImage = `url('${searchImg}')`;
+            photoFound = true;
+          }
+        }
+      }
     }
   } catch (err) {
-    document.getElementById('detail-modal-summary').textContent = 'Could not load Wikipedia details for this place. It might not have a dedicated article.';
-    document.getElementById('detail-modal-header').style.backgroundImage = 'radial-gradient(circle at bottom right, rgba(108,99,255,0.4) 0%, rgba(8,12,20,1) 80%)';
+    document.getElementById('detail-modal-summary').textContent = `${place.name} is a renowned ${place.category.toLowerCase()} in this region. Tap Open Map or Wikipedia below to explore full traveler guides and history.`;
   }
 }
 
 function closePlaceModal() {
+  const videoIframe = document.getElementById('detail-modal-video');
+  if (videoIframe) videoIframe.src = ''; // stop audio on modal close
   document.getElementById('place-detail-modal').classList.add('hidden');
 }
 

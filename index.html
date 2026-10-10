@@ -390,9 +390,14 @@
         
         <!-- YOUTUBE VLOG & MEDIA GALLERY -->
         <div class="modal-media-section" style="margin: 20px 0;">
-          <h3 style="font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-            <span>🎬</span> Walking Tour &amp; Travel Vlog Preview
-          </h3>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="font-size: 0.95rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; margin: 0;">
+              <span>🎬</span> Walking Tour &amp; Travel Vlog Preview
+            </h3>
+            <a id="detail-modal-video-link" href="#" target="_blank" rel="noopener" style="font-size: 0.8rem; font-weight: 700; color: #ff4757; text-decoration: none; background: rgba(255, 71, 87, 0.15); border: 1px solid rgba(255, 71, 87, 0.35); padding: 4px 10px; border-radius: 50px; display: inline-flex; align-items: center; gap: 4px;">
+              ▶ Open on YouTube ↗
+            </a>
+          </div>
           <div id="detail-modal-video-wrap" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: var(--radius-sm); border: 1px solid var(--border); background: #000;">
             <iframe id="detail-modal-video" style="position: absolute; top:0; left: 0; width: 100%; height: 100%; border:0;" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
           </div>
