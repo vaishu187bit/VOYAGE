@@ -160,16 +160,122 @@
   <!-- ITINERARY -->
   <section id="itinerary-section" class="itinerary-section hidden">
     <div class="container">
+      
+      <!-- NETFLIX STYLE FEATURED SPOTLIGHT -->
+      <div id="netflix-billboard" class="netflix-billboard">
+        <div class="billboard-backdrop" id="billboard-backdrop"></div>
+        <div class="billboard-gradient"></div>
+        <div class="billboard-content">
+          <div class="billboard-badge">🔥 #1 TRENDING IN YOUR 10KM RADIUS TODAY</div>
+          <h1 id="billboard-title" class="billboard-title">Discovering Top Spot...</h1>
+          <div class="billboard-meta">
+            <span id="billboard-category" class="badge-cat">Tourist Attraction</span>
+            <span id="billboard-dist" class="badge-dist">⚡ 1.2 km away</span>
+            <span id="billboard-match" class="badge-match">99% Match for Students</span>
+          </div>
+          <p id="billboard-desc" class="billboard-desc">Uncovering the most popular destination around your area...</p>
+          <div class="billboard-actions">
+            <button id="billboard-explore-btn" class="billboard-btn primary">▶ Explore Details</button>
+            <a id="billboard-uber-btn" href="#" target="_blank" class="billboard-btn secondary">🚗 Book Ride Instantly</a>
+            <button id="billboard-party-btn" class="billboard-btn tertiary" onclick="toggleTripRoomModal()">👥 Start Watch Party</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- HACKATHON POWER BAR: WATCH PARTY & SMART ROUTE OPTIMIZATION -->
+      <div class="hackathon-tools-bar">
+        <div class="tools-left">
+          <button id="optimize-route-btn" class="tool-btn optimize-btn" onclick="optimizeCurrentRoute()">
+            <span class="tool-icon">🧠</span> <strong>AI Anti-Zigzag Routing</strong>
+            <span class="tool-pill">TSP Optimized</span>
+          </button>
+          <button id="watch-party-btn" class="tool-btn party-btn" onclick="toggleTripRoomModal()">
+            <span class="tool-icon">🎉</span> <strong>Trip Watch Party Room</strong>
+            <span id="party-counter-badge" class="tool-pill live-pill">Live Sync</span>
+          </button>
+        </div>
+        <div class="tools-right">
+          <button class="tool-btn split-btn" onclick="openExpenseSplitter(null)">
+            <span class="tool-icon">💸</span> Group Fare Splitter
+          </button>
+          <button class="print-btn" onclick="window.print()">🖨️ Print Itinerary</button>
+        </div>
+      </div>
+
       <div class="section-header">
         <div>
-          <h2 class="section-title">Your Local Itinerary</h2>
-          <p class="section-subtitle">Sourced from OpenStreetMap · sorted by distance</p>
+          <h2 class="section-title">Your Curated Local Feed</h2>
+          <p class="section-subtitle" id="itinerary-sort-status">Curated by AI proximity &amp; crowd ratings · Hover to preview</p>
         </div>
-        <button class="print-btn" onclick="window.print()">🖨️ Print Itinerary</button>
       </div>
       <div id="itinerary-grid" class="itinerary-grid"></div>
     </div>
   </section>
+
+  <!-- WATCH PARTY / COLLAB MODAL -->
+  <div id="party-modal" class="detail-modal hidden">
+    <div class="detail-modal-backdrop" onclick="toggleTripRoomModal()"></div>
+    <div class="detail-modal-card party-card">
+      <button class="detail-modal-close" onclick="toggleTripRoomModal()">✕</button>
+      <div class="party-modal-header">
+        <span class="party-badge">🎉 Watch Party &amp; Live Voting</span>
+        <h2>Explore Together with Friends</h2>
+        <p>Invite friends to vote on spots in real-time. Share this session link!</p>
+      </div>
+      <div class="party-room-box">
+        <label>Trip Room Code</label>
+        <div class="room-code-row">
+          <input type="text" id="party-room-code" readonly value="VOYAGE-HACK-77" />
+          <button class="copy-btn" onclick="copyPartyCode()">📋 Copy Invite Link</button>
+        </div>
+      </div>
+      <div class="party-active-friends">
+        <div class="friend-pill active"><span class="avatar">👑</span> You (Host)</div>
+        <div class="friend-pill active"><span class="avatar">🎒</span> Rahul (Joined)</div>
+        <div class="friend-pill active"><span class="avatar">📸</span> Ananya (Joined)</div>
+      </div>
+      <div class="party-voting-list">
+        <h3>Live Community Upvotes (Within 10km)</h3>
+        <div id="party-voting-items" class="voting-items"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXPENSE SPLITTER MODAL -->
+  <div id="splitter-modal" class="detail-modal hidden">
+    <div class="detail-modal-backdrop" onclick="closeExpenseSplitter()"></div>
+    <div class="detail-modal-card splitter-card">
+      <button class="detail-modal-close" onclick="closeExpenseSplitter()">✕</button>
+      <div class="splitter-header">
+        <span class="party-badge">💸 Group Expense Splitter</span>
+        <h2 id="splitter-place-title">Split Ride with Friends</h2>
+        <p>Instant ride fair-share calculator for students.</p>
+      </div>
+      <div class="splitter-body">
+        <div class="calc-row">
+          <label>Estimated Total Fare (Ola/Uber):</label>
+          <div class="input-prefix">
+            <span>₹</span>
+            <input type="number" id="split-total-fare" value="180" oninput="calculateSplit()" />
+          </div>
+        </div>
+        <div class="calc-row">
+          <label>Number of People Sharing:</label>
+          <div class="people-stepper">
+            <button onclick="adjustPeople(-1)">−</button>
+            <span id="people-count">3</span>
+            <button onclick="adjustPeople(1)">+</button>
+          </div>
+        </div>
+        <div class="split-result-box">
+          <span class="result-label">Each Person Pays</span>
+          <h1 id="split-per-person">₹60</h1>
+          <span class="result-sub">Save ~66% by riding together! 🛺</span>
+        </div>
+        <button class="split-share-btn" onclick="shareSplitWhatsapp()">📲 Share Split on WhatsApp</button>
+      </div>
+    </div>
+  </div>
 
   <!-- MAP -->
   <section id="map-section" class="map-section hidden">

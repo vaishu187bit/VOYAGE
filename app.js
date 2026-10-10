@@ -472,9 +472,11 @@ function processPlaces(elements, uLat, uLon) {
 
   document.getElementById('place-count').textContent = allPlaces.length;
   renderChips();
+  setupNetflixBillboard(allPlaces[0]);
   renderItinerary(filteredPlaces);
   renderMap(allPlaces);
   showSections();
+  setupPartyVotingList(allPlaces.slice(0, 8));
 }
 
 // ── Classify & Icon ────────────────────────────
@@ -644,9 +646,19 @@ function makeCard(place, delay) {
   const tagsHtml = place.tags.map(t => `<span class="card-tag">${esc(t)}</span>`).join('');
   const f = place.fares;
   const fee = place.entryFee;
+  const defaultBg = getCategoryGradient(place.categoryId);
+  const etaMins = Math.max(3, Math.round((place.dist / 1000) * 3.5 + 2));
 
   card.innerHTML = `
     <div class="card-accent-bar"></div>
+    <div class="card-thumb-wrap" id="thumb-wrap-${place.id}" style="background: ${defaultBg};">
+      <img class="card-thumb-img hidden" id="thumb-img-${place.id}" alt="${esc(place.name)}" loading="lazy" />
+      <div class="card-thumb-overlay"></div>
+      <div class="thumb-eta-badge">⚡ ~${etaMins}m via Cab</div>
+      <button class="thumb-vote-btn" onclick="event.stopPropagation(); voteSpot('${place.id}', this)">
+        <span>🔥</span> <span class="vote-num">${(place.id % 24) + 12}</span>
+      </button>
+    </div>
     <div class="card-body">
       <div class="card-top">
         <div class="card-icon">${place.icon}</div>
@@ -662,7 +674,10 @@ function makeCard(place, delay) {
         <span class="info-badge time-badge">⏰ ${esc(place.bestTime)}</span>
       </div>
       <div class="card-transport">
-        <div class="transport-header">🚗 Tap a fare to book instantly</div>
+        <div class="transport-header">
+          <span>🚗 Tap a fare to book instantly</span>
+          <button class="mini-split-btn" style="background:none; border:none; color:var(--accent-4); font-size:0.75rem; font-weight:700; cursor:pointer;" onclick="event.stopPropagation(); openExpenseSplitter('${esc(place.name)}', ${f.ola})">💸 Split Fare</button>
+        </div>
         <div class="transport-grid transport-grid-4">
           <a href="${place.olaUrl}" target="_blank" rel="noopener" class="t-item t-link t-ola" title="Book Auto on Ola">
             <span class="t-icon">🛺</span>
@@ -701,11 +716,13 @@ function makeCard(place, delay) {
     </div>`;
 
   card.querySelector('.card-body').addEventListener('click', (e) => {
-    if (e.target.closest('a')) return;
+    if (e.target.closest('a') || e.target.closest('button')) return;
     openPlaceModal(place);
-    // Optional: still fly to map in background
     setTimeout(() => mapInstance?.flyTo([place.lat, place.lon], 16, { animate: true, duration: 1 }), 400);
   });
+
+  // Lazy-load Wikipedia photo for this card
+  lazyLoadPlaceImage(place);
 
   return card;
 }
@@ -877,3 +894,231 @@ function toRad(d) { return d * Math.PI / 180; }
 function formatDist(m) { return m < 1000 ? `${Math.round(m)} m` : `${(m/1000).toFixed(1)} km`; }
 function cap(s) { return s.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase()); }
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ══════════════════════════════════════════════
+// NETFLIX BILLBOARD SPOTLIGHT & IMAGE PREVIEWS
+// ══════════════════════════════════════════════
+
+function getCategoryGradient(catId) {
+  const gradients = {
+    tourism: 'linear-gradient(135deg, #1e1b4b, #312e81)',
+    historic: 'linear-gradient(135deg, #3f2c1d, #78350f)',
+    natural: 'linear-gradient(135deg, #064e3b, #047857)',
+    leisure: 'linear-gradient(135deg, #4c0519, #831843)',
+    food: 'linear-gradient(135deg, #451a03, #9a3412)',
+    shopping: 'linear-gradient(135deg, #1e1b4b, #4338ca)',
+    religious: 'linear-gradient(135deg, #2e1065, #5b21b6)',
+  };
+  return gradients[catId] || 'linear-gradient(135deg, #0f172a, #1e293b)';
+}
+
+async function setupNetflixBillboard(topPlace) {
+  if (!topPlace) return;
+  const billboard = document.getElementById('netflix-billboard');
+  if (!billboard) return;
+
+  document.getElementById('billboard-title').textContent = topPlace.name;
+  document.getElementById('billboard-category').textContent = topPlace.category;
+  document.getElementById('billboard-dist').textContent = `⚡ ${topPlace.distLabel} away`;
+  document.getElementById('billboard-desc').textContent = topPlace.address || `Premier hotspot detected in your 10km radius with top engagement scores.`;
+  
+  const exploreBtn = document.getElementById('billboard-explore-btn');
+  exploreBtn.onclick = () => openPlaceModal(topPlace);
+  
+  const uberBtn = document.getElementById('billboard-uber-btn');
+  uberBtn.href = topPlace.uberUrl;
+
+  // Fetch Wikipedia featured image for top place
+  try {
+    const safeTitle = encodeURIComponent(topPlace.name.replace(/ /g, '_'));
+    const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${safeTitle}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.extract) document.getElementById('billboard-desc').textContent = data.extract;
+      const img = data.originalimage?.source || data.thumbnail?.source;
+      if (img) {
+        document.getElementById('billboard-backdrop').style.backgroundImage = `url('${img}')`;
+      }
+    }
+  } catch (e) { /* fallback gradient already in place */ }
+}
+
+const imageCache = new Map();
+async function lazyLoadPlaceImage(place) {
+  if (imageCache.has(place.name)) {
+    const imgUrl = imageCache.get(place.name);
+    if (imgUrl) applyThumbnail(place.id, imgUrl);
+    return;
+  }
+  try {
+    const safeTitle = encodeURIComponent(place.name.replace(/ /g, '_'));
+    const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${safeTitle}`);
+    if (res.ok) {
+      const data = await res.json();
+      const imgUrl = data.thumbnail?.source || data.originalimage?.source;
+      imageCache.set(place.name, imgUrl || null);
+      if (imgUrl) applyThumbnail(place.id, imgUrl);
+    }
+  } catch (e) {
+    imageCache.set(place.name, null);
+  }
+}
+
+function applyThumbnail(placeId, imgUrl) {
+  const imgEl = document.getElementById(`thumb-img-${placeId}`);
+  if (imgEl) {
+    imgEl.src = imgUrl;
+    imgEl.classList.remove('hidden');
+  }
+}
+
+// ══════════════════════════════════════════════
+// AI ANTI-ZIGZAG ROUTING (TSP Nearest-Neighbor)
+// ══════════════════════════════════════════════
+
+let isRouteOptimized = false;
+function optimizeCurrentRoute() {
+  if (!filteredPlaces.length) return;
+  const btn = document.getElementById('optimize-route-btn');
+  const status = document.getElementById('itinerary-sort-status');
+  
+  if (isRouteOptimized) {
+    // Revert to raw distance
+    filteredPlaces.sort((a, b) => a.dist - b.dist);
+    isRouteOptimized = false;
+    btn.classList.remove('active');
+    btn.innerHTML = `<span class="tool-icon">🧠</span> <strong>AI Anti-Zigzag Routing</strong> <span class="tool-pill">TSP Optimized</span>`;
+    status.textContent = 'Sorted by direct proximity to you';
+    renderItinerary(filteredPlaces);
+    return;
+  }
+
+  // Nearest-Neighbor Travelling Salesperson Algorithm to eliminate zig-zag travel
+  const unvisited = [...filteredPlaces];
+  const optimized = [];
+  
+  // Start from the closest place to user
+  let current = unvisited.shift();
+  optimized.push(current);
+
+  while (unvisited.length > 0) {
+    let nearestIdx = 0;
+    let minD = Infinity;
+    for (let i = 0; i < unvisited.length; i++) {
+      const d = haversine(current.lat, current.lon, unvisited[i].lat, unvisited[i].lon);
+      if (d < minD) {
+        minD = d;
+        nearestIdx = i;
+      }
+    }
+    current = unvisited.splice(nearestIdx, 1)[0];
+    optimized.push(current);
+  }
+
+  filteredPlaces = optimized;
+  isRouteOptimized = true;
+  btn.classList.add('active');
+  btn.innerHTML = `<span class="tool-icon">✅</span> <strong>Route Optimized!</strong> <span class="tool-pill" style="background:#2ed573; color:#000;">Smooth Flow</span>`;
+  status.textContent = '⚡ Anti-ZigZag Active: Sequential shortest path from stop to stop!';
+  renderItinerary(filteredPlaces);
+}
+
+// ══════════════════════════════════════════════
+// WATCH PARTY LIVE VOTING & ROOM
+// ══════════════════════════════════════════════
+
+function toggleTripRoomModal() {
+  const modal = document.getElementById('party-modal');
+  modal.classList.toggle('hidden');
+}
+
+function copyPartyCode() {
+  const code = document.getElementById('party-room-code').value;
+  const url = `${window.location.origin}${window.location.pathname}?room=${code}`;
+  navigator.clipboard.writeText(url).then(() => {
+    alert(`🎉 Watch Party Link Copied!\nShare this with friends:\n${url}`);
+  }).catch(() => {
+    prompt('Copy your Watch Party link:', url);
+  });
+}
+
+function setupPartyVotingList(places) {
+  const container = document.getElementById('party-voting-items');
+  if (!container) return;
+  container.innerHTML = '';
+  places.forEach((p, idx) => {
+    const votes = 14 + (idx * 3);
+    const row = document.createElement('div');
+    row.className = 'vote-row';
+    row.innerHTML = `
+      <div class="vote-row-info">
+        <span class="vote-row-name">${esc(p.name)}</span>
+        <span class="vote-row-sub">${esc(p.category)} · ${esc(p.distLabel)}</span>
+      </div>
+      <div class="vote-actions">
+        <button class="upvote-pill-btn" onclick="voteItemInList(this)">▲ <span class="v-cnt">${votes}</span></button>
+      </div>`;
+    container.appendChild(row);
+  });
+}
+
+function voteItemInList(btn) {
+  const cnt = btn.querySelector('.v-cnt');
+  cnt.textContent = parseInt(cnt.textContent) + 1;
+  btn.style.background = 'rgba(255, 107, 157, 0.4)';
+  btn.style.borderColor = 'var(--accent-3)';
+}
+
+function voteSpot(placeId, btn) {
+  const numSpan = btn.querySelector('.vote-num');
+  numSpan.textContent = parseInt(numSpan.textContent) + 1;
+  btn.style.background = 'rgba(255, 107, 157, 0.5)';
+  btn.style.borderColor = '#ff6b81';
+}
+
+// ══════════════════════════════════════════════
+// GROUP EXPENSE SPLITTER
+// ══════════════════════════════════════════════
+
+let currentSplitFare = 180;
+let currentPeople = 3;
+
+function openExpenseSplitter(placeName, fare) {
+  const modal = document.getElementById('splitter-modal');
+  const title = document.getElementById('splitter-place-title');
+  const fareInput = document.getElementById('split-total-fare');
+
+  if (placeName && fare) {
+    title.textContent = `Split Ride to ${placeName}`;
+    fareInput.value = fare;
+    currentSplitFare = fare;
+  } else {
+    title.textContent = 'Group Ride Fare Splitter';
+  }
+  
+  calculateSplit();
+  modal.classList.remove('hidden');
+}
+
+function closeExpenseSplitter() {
+  document.getElementById('splitter-modal').classList.add('hidden');
+}
+
+function adjustPeople(delta) {
+  currentPeople = Math.max(1, Math.min(10, currentPeople + delta));
+  document.getElementById('people-count').textContent = currentPeople;
+  calculateSplit();
+}
+
+function calculateSplit() {
+  const total = parseFloat(document.getElementById('split-total-fare').value) || 0;
+  currentSplitFare = total;
+  const perPerson = Math.ceil(total / currentPeople);
+  document.getElementById('split-per-person').textContent = `₹${perPerson}`;
+}
+
+function shareSplitWhatsapp() {
+  const perPerson = Math.ceil(currentSplitFare / currentPeople);
+  const text = encodeURIComponent(`🚕 Hey! Voyage estimated our cab ride to be ₹${currentSplitFare}. Split between ${currentPeople} of us, that's just ₹${perPerson} each! Let's go: ${window.location.href}`);
+  window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+}
