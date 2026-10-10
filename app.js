@@ -385,22 +385,25 @@ async function timedFetch(url, opts, ms = 15000) {
 }
 
 async function fetchPlaces(lat, lon) {
+  dismissError();
   const body = 'data=' + encodeURIComponent(buildQuery(lat, lon));
   const MIRRORS = [
     'https://overpass-api.de/api/interpreter',
     'https://overpass.kumi.systems/api/interpreter',
+    'https://lz4.overpass-api.de/api/interpreter',
+    'https://z.overpass-api.de/api/interpreter',
     'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
   ];
 
   let data = null;
   for (let i = 0; i < MIRRORS.length; i++) {
     try {
-      setLoaderProgress(40 + i * 15, `Fetching places… (server ${i + 1}/${MIRRORS.length})`);
-      const res = await timedFetch(MIRRORS[i], { method: 'POST', body }, 15000);
+      setLoaderProgress(35 + i * 12, `Fetching places… (server ${i + 1}/${MIRRORS.length})`);
+      const res = await timedFetch(MIRRORS[i], { method: 'POST', body }, 18000);
       if (!res.ok) continue;
       const json = await res.json();
-      if (json && json.elements) { data = json; break; }
-    } catch { /* try next */ }
+      if (json && json.elements && json.elements.length > 0) { data = json; break; }
+    } catch { /* try next mirror */ }
   }
 
   if (!data) {
@@ -409,6 +412,7 @@ async function fetchPlaces(lat, lon) {
     return;
   }
 
+  dismissError();
   setLoaderProgress(90, 'Processing results…');
   processPlaces(data.elements, lat, lon);
 }
@@ -757,11 +761,18 @@ async function openPlaceModal(place) {
   // Show modal with loading state
   document.getElementById('detail-modal-summary').textContent = 'Loading Wikipedia summary...';
   document.getElementById('detail-modal-header').style.backgroundImage = 'none';
+  
+  // Set up dynamic YouTube Walking Tour/Vlog embed
+  const videoIframe = document.getElementById('detail-modal-video');
+  if (videoIframe) {
+    const videoQuery = encodeURIComponent(`${place.name} travel tour vlog`);
+    videoIframe.src = `https://www.youtube.com/embed?listType=search&list=${videoQuery}&autoplay=0`;
+  }
+  
   document.getElementById('place-detail-modal').classList.remove('hidden');
 
   // Fetch rich info from Wikipedia API
   try {
-    // Wikipedia API prefers spaces as underscores for titles
     const safeTitle = encodeURIComponent(place.name.replace(/ /g, '_'));
     const wikiUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${safeTitle}`;
     const res = await fetch(wikiUrl);
@@ -776,11 +787,7 @@ async function openPlaceModal(place) {
     }
     
     if (data.thumbnail && data.thumbnail.source) {
-      // Use the high-res original image if possible, fallback to thumbnail edge 
-      let imgUrl = data.thumbnail.source;
-      if (data.originalimage && data.originalimage.source) {
-        imgUrl = data.originalimage.source;
-      }
+      let imgUrl = data.originalimage?.source || data.thumbnail?.source;
       document.getElementById('detail-modal-header').style.backgroundImage = `url('${imgUrl}')`;
     } else {
       document.getElementById('detail-modal-header').style.backgroundImage = 'radial-gradient(circle at bottom right, rgba(108,99,255,0.4) 0%, rgba(8,12,20,1) 80%)';
@@ -952,13 +959,33 @@ async function lazyLoadPlaceImage(place) {
     return;
   }
   try {
+    // 1. Try direct exact summary
     const safeTitle = encodeURIComponent(place.name.replace(/ /g, '_'));
     const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${safeTitle}`);
     if (res.ok) {
       const data = await res.json();
       const imgUrl = data.thumbnail?.source || data.originalimage?.source;
-      imageCache.set(place.name, imgUrl || null);
-      if (imgUrl) applyThumbnail(place.id, imgUrl);
+      if (imgUrl) {
+        imageCache.set(place.name, imgUrl);
+        applyThumbnail(place.id, imgUrl);
+        return;
+      }
+    }
+
+    // 2. Fallback: Search Wikipedia API if exact page title differs slightly
+    const searchRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&origin=*&format=json&generator=search&gsrsearch=${encodeURIComponent(place.name)}&gsrlimit=1&prop=pageimages&pithumbsize=400`);
+    if (searchRes.ok) {
+      const searchData = await searchRes.json();
+      const pages = searchData.query?.pages;
+      if (pages) {
+        const firstPage = Object.values(pages)[0];
+        const searchImg = firstPage?.thumbnail?.source;
+        if (searchImg) {
+          imageCache.set(place.name, searchImg);
+          applyThumbnail(place.id, searchImg);
+          return;
+        }
+      }
     }
   } catch (e) {
     imageCache.set(place.name, null);
