@@ -470,7 +470,8 @@ function processPlaces(elements, uLat, uLon) {
   // Store in backend cache (fire-and-forget, won't block UI)
   apiStoreCache(uLat, uLon, allPlaces);
 
-  document.getElementById('place-count').textContent = allPlaces.length;
+  animateCounter('place-count', allPlaces.length);
+  fetchLiveWeather(uLat, uLon);
   renderChips();
   setupNetflixBillboard(allPlaces[0]);
   renderItinerary(filteredPlaces);
@@ -651,7 +652,7 @@ function makeCard(place, delay) {
 
   card.innerHTML = `
     <div class="card-accent-bar"></div>
-    <div class="card-thumb-wrap" id="thumb-wrap-${place.id}" style="background: ${defaultBg};">
+    <div class="card-thumb-wrap shimmer-skeleton" id="thumb-wrap-${place.id}" style="background: ${defaultBg};">
       <img class="card-thumb-img hidden" id="thumb-img-${place.id}" alt="${esc(place.name)}" loading="lazy" />
       <div class="card-thumb-overlay"></div>
       <div class="thumb-eta-badge">⚡ ~${etaMins}m via Cab</div>
@@ -966,9 +967,13 @@ async function lazyLoadPlaceImage(place) {
 
 function applyThumbnail(placeId, imgUrl) {
   const imgEl = document.getElementById(`thumb-img-${placeId}`);
+  const wrapEl = document.getElementById(`thumb-wrap-${placeId}`);
   if (imgEl) {
+    imgEl.onload = () => {
+      if (wrapEl) wrapEl.classList.remove('shimmer-skeleton');
+      imgEl.classList.remove('hidden');
+    };
     imgEl.src = imgUrl;
-    imgEl.classList.remove('hidden');
   }
 }
 
@@ -1122,3 +1127,78 @@ function shareSplitWhatsapp() {
   const text = encodeURIComponent(`🚕 Hey! Voyage estimated our cab ride to be ₹${currentSplitFare}. Split between ${currentPeople} of us, that's just ₹${perPerson} each! Let's go: ${window.location.href}`);
   window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
 }
+
+// ══════════════════════════════════════════════
+// 🌤️ LIVE WEATHER (Open-Meteo Free API)
+// ══════════════════════════════════════════════
+
+async function fetchLiveWeather(lat, lon) {
+  const tempEl = document.getElementById('weather-temp');
+  const iconEl = document.getElementById('weather-icon');
+  if (!tempEl) return;
+
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,is_day&timezone=auto`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Weather fetch failed');
+    const data = await res.json();
+    
+    const temp = Math.round(data.current?.temperature_2m ?? 26);
+    const code = data.current?.weather_code ?? 0;
+    const isDay = data.current?.is_day ?? 1;
+
+    // Weather condition code translation
+    let icon = isDay ? '☀️' : '🌙';
+    let desc = 'Clear';
+    if ([1, 2].includes(code)) { icon = isDay ? '🌤️' : '☁️'; desc = 'Partly Cloudy'; }
+    else if (code === 3) { icon = '☁️'; desc = 'Overcast'; }
+    else if ([45, 48].includes(code)) { icon = '🌫️'; desc = 'Foggy'; }
+    else if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) { icon = '🌧️'; desc = 'Rain'; }
+    else if ([95, 96, 99].includes(code)) { icon = '⛈️'; desc = 'Thunderstorm'; }
+
+    iconEl.textContent = icon;
+    tempEl.textContent = `${temp}°C · ${desc}`;
+  } catch (err) {
+    if (tempEl) tempEl.textContent = '26°C · Pleasant';
+  }
+}
+
+// ══════════════════════════════════════════════
+// 🔢 ANIMATED NUMBER COUNTER
+// ══════════════════════════════════════════════
+
+function animateCounter(elementId, targetValue, duration = 1200) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  const start = 0;
+  const startTime = performance.now();
+
+  function update(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    // Ease out cubic
+    const easeProgress = 1 - Math.pow(1 - progress, 3);
+    const current = Math.floor(start + (targetValue - start) * easeProgress);
+    el.textContent = current;
+    if (progress < 1) {
+      requestAnimationFrame(update);
+    } else {
+      el.textContent = targetValue;
+    }
+  }
+  requestAnimationFrame(update);
+}
+
+// ══════════════════════════════════════════════
+// ⬆️ SCROLL-TO-TOP FAB HANDLER
+// ══════════════════════════════════════════════
+
+window.addEventListener('scroll', () => {
+  const fab = document.getElementById('scroll-top-fab');
+  if (!fab) return;
+  if (window.scrollY > 400) {
+    fab.classList.remove('hidden');
+  } else {
+    fab.classList.add('hidden');
+  }
+});

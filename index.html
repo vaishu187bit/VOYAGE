@@ -145,6 +145,14 @@
           <span id="place-count" class="strip-value">0</span>
         </div>
       </div>
+      <div class="strip-divider"></div>
+      <div class="strip-item" id="weather-widget">
+        <span class="strip-icon" id="weather-icon">🌤️</span>
+        <div>
+          <span class="strip-label">Live Weather</span>
+          <span id="weather-temp" class="strip-value">Loading...</span>
+        </div>
+      </div>
       <button class="refresh-btn" onclick="scrollToSearch()">🔍 New Search</button>
     </div>
   </div>
@@ -397,6 +405,11 @@
       <p class="footer-legal">🔒 Your location is only used locally — never stored or shared.</p>
     </div>
   </footer>
+
+  <!-- SCROLL TO TOP FAB -->
+  <button id="scroll-top-fab" class="scroll-top-fab hidden" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })" title="Scroll to Top">
+    ↑
+  </button>
 
   <script src="api.js"></script>
   <script src="app.js"></script>
