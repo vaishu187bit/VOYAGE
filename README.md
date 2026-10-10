@@ -1,4 +1,4 @@
-﻿# VOYAGE — NearbyQuest 🧭
+# VOYAGE — NearbyQuest 🧭
 
 **Problem Statement: 4 — Open Innovation (Student Pain Points)**
 
@@ -103,7 +103,7 @@ open index.html        # Mac
 `
 
 ### Live URL
-> 🌐 **https://YOUR_USERNAME.github.io/YOUR_REPO**
+> 🌐 **https://vaishu187bit.github.io/VOYAGE**
 
 No login required. No API keys needed.
 
