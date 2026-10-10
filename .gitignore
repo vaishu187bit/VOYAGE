@@ -1,11 +1,49 @@
-# Dependencies
-node_modules/
-
-# Environment Variables
-.env
-
-# MacOS
+﻿# OS Files
 .DS_Store
+Thumbs.db
+desktop.ini
 
-# Misc
+# Editor / IDE
+.vscode/
+.idea/
+
+# Environment & Secrets
+.env
+.env.local
+.env.production
+
+# Node
+node_modules/
 npm-debug.log*
+package-lock.json
+
+# Build Output
+dist/
+build/
+out/
+
+# Temp Files
+_docx_tmp/
+_tmp.zip
+*.tmp
+
+# Word / Office / Presentation Files
+*.docx
+*.xlsx
+*.pptx
+
+# Server folder (keep only if needed)
+server/node_modules/
+
+# Database files
+database/
+
+# Scratch / test scripts
+test_read_docx.js
+test_read_ppt.js
+build_native_docx.js
+create_voyage_docx.js
+generate_ppt.js
+
+# Other scripts not part of the web app
+api.js
